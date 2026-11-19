@@ -1,0 +1,11 @@
+{
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "num_parameters": 281608,
+  "elapsed_sec": 34.377874199999496,
+  "std_adamw_overall_ce": 6.093841568099128,
+  "adatc_adamw_overall_ce": 6.087118866708544,
+  "std_adamw_post_shift_150_220": 6.546787003108434,
+  "adatc_adamw_post_shift_150_220": 6.5305244105202815,
+  "std_adamw_final_30": 5.7476758850945355,
+  "adatc_adamw_final_30": 5.745824464162189
+}

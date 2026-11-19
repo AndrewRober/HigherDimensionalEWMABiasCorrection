@@ -1,0 +1,64 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  citecolor=blue!60!black,
+  urlcolor=blue!60!black
+}
+
+\newtheorem{theorem}{Theorem}
+
+\title{\textbf{Generalized Higher-Dimensional EWMA Bias Correction:\\
+Non-Stationary Drift Elimination, the Blessing of Dimensionality,\\
+and Adaptive Deep Learning Optimization}}
+\author{Andrew Rober\\
+\small \texttt{andrew\_rober@hotmail.com} \quad \url{https://github.com/AndrewRober/HigherDimensionalEWMABiasCorrection}}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The Exponentially Weighted Moving Average (EWMA) and its zero-initialization bias correction $\hat{v}_t = v_t / (1 - \beta^t)$ underpin modern signal processing and stochastic gradient optimizers (Momentum SGD, RMSprop, Adam, AdamW). Yet classical bias correction rests on three fragile assumptions: (i) zero initialization ($v_0 = 0$), (ii) stationary expectations ($\mathbb{E}[x_k] \equiv \mu$), and (iii) dense synchronous updates across all coordinates. Building upon and generalizing our prior 1D investigation~\cite{rober2023ewma}, we formulate EWMA over arbitrary contraction operators $\mathbf{B} \in \mathbb{R}^{d \times d}$ ($\rho(\mathbf{B}) < 1$) in $\mathbb{R}^d$ and prove five theoretical and algorithmic results: (1) exact arbitrary-initialization operator bias correction $\hat{\mathbf{v}}_t^{(0)} = (\mathbf{I}_d - \mathbf{B}^t)^{-1}(\mathbf{v}_t - \mathbf{B}^t\mathbf{v}_0)$, finite-$t$ covariance, and anisotropic cumulative-mean duality ($\epsilon \to 0^+$); (2) exact finite-$t$ non-stationary lag $-\mathbf{L}_t(\mathbf{B})\mathbf{g}$, higher-dimensional directional rotation error under anisotropic $\mathbf{B}$, and an $O(1)$-per-step first-order Trend-Corrected Operator EWMA ($\hat{\mathbf{v}}_t^{(\mathrm{TC},1)}$) exact for all $t \ge 2$; (3) a \emph{Blessing of Dimensionality} theorem showing that blind second-difference James--Stein/Wiener shrinkage (\texttt{AdaTC-EWMA}) converges to Oracle MSE risk at rate $O(d^{-1})$ ($+0.02\%$ excess risk at $d = 1024$, cutting MSE by $73\%\text{--}95\%$ across non-stationary manifolds in $\mathbb{R}^{128}$); (4) exact sparse exposure calibration curing the $(1-\beta_1)/\sqrt{1-\beta_2} = 3.16\times\text{--}10.0\times$ rare-token wakeup shock in dense \texttt{AdamW}; and (5) the three-way bias-correction asymmetry across Momentum SGD, RMSprop, and Adam across mini-batch sizes.
+\end{abstract}
+
+\section{Operator Formulation in $\mathbb{R}^d$}
+Let $\{\mathbf{x}_t\}_{t \ge 1} \subset \mathbb{R}^d$ have mean $\bm{\mu}_t = \mathbb{E}[\mathbf{x}_t]$ and zero-mean noise $\bm{\varepsilon}_t = \mathbf{x}_t - \bm{\mu}_t$ with covariance $\bm{\Sigma}_t$. Given $\mathbf{v}_0 \in \mathbb{R}^d$ and contraction $\mathbf{B} \in \mathbb{R}^{d \times d}$ with $\rho(\mathbf{B}) < 1$, define:
+\begin{equation}
+  \mathbf{v}_t = \mathbf{B}\mathbf{v}_{t-1} + (\mathbf{I}_d - \mathbf{B})\mathbf{x}_t
+  = \mathbf{B}^t \mathbf{v}_0 + \sum_{k=1}^t \mathbf{B}^{t-k}(\mathbf{I}_d - \mathbf{B})\mathbf{x}_k, \qquad t \ge 1.
+\end{equation}
+
+\begin{theorem}[Affine-Invariant Operator Bias Correction \& Cumulative-Mean Duality]
+Define $\hat{\mathbf{v}}_t^{(0)} := (\mathbf{I}_d - \mathbf{B}^t)^{-1}(\mathbf{v}_t - \mathbf{B}^t\mathbf{v}_0)$. Then:
+(1) If $\mathbb{E}[\mathbf{x}_k] = \bm{\mu}$ ($1 \le k \le t$), $\mathbb{E}[\hat{\mathbf{v}}_t^{(0)}] = \bm{\mu}$ for all $t \ge 1$ and $\mathbf{v}_0 \in \mathbb{R}^d$.
+(2) For uncorrelated noise $\operatorname{Cov}(\bm{\varepsilon}_k) = \bm{\Sigma}$ commuting with symmetric $\mathbf{B}$, $\operatorname{Cov}(\hat{\mathbf{v}}_t^{(0)}) = (\mathbf{I}_d - \mathbf{B})(\mathbf{I}_d + \mathbf{B})^{-1}(\mathbf{I}_d + \mathbf{B}^t)(\mathbf{I}_d - \mathbf{B}^t)^{-1}\bm{\Sigma}$.
+(3) For $\mathbf{B}(\epsilon) = e^{-\epsilon\mathbf{H}}$ ($\operatorname{Re}\lambda_i(\mathbf{H}) > 0$), $\lim_{\mathbf{B}\to\mathbf{0}}\hat{\mathbf{v}}_t^{(0)} = \mathbf{x}_t$ and $\lim_{\epsilon\to 0^+}\hat{\mathbf{v}}_t^{(0)}(\mathbf{B}(\epsilon)) = \frac{1}{t}\sum_{k=1}^t \mathbf{x}_k$.
+\end{theorem}
+
+\begin{theorem}[Exact Non-Stationary Lag \& $O(1)$ Trend-Corrected Operator EWMA]
+Under $\bm{\mu}_k = \bm{\mu}_t - (t - k)\mathbf{g}$, $\mathbb{E}[\hat{\mathbf{v}}_t^{(0)}] - \bm{\mu}_t = -\mathbf{L}_t(\mathbf{B})\mathbf{g}$ where $\mathbf{L}_t(\mathbf{B}) = \mathbf{B}(\mathbf{I}_d - \mathbf{B})^{-1} - t(\mathbf{I}_d - \mathbf{B}^t)^{-1}\mathbf{B}^t$. Cascading $\mathbf{u}_t = \mathbf{B}\mathbf{u}_{t-1} + (\mathbf{I}_d - \mathbf{B})\mathbf{v}_t$ with $\mathbf{W}_t^{(0)}(\mathbf{B}) = \mathbf{I}_d - \mathbf{B}^t - t\mathbf{B}^t(\mathbf{I}_d - \mathbf{B})$, $\hat{\mathbf{u}}_t^{(0)} = (\mathbf{W}_t^{(0)})^{-1}(\mathbf{u}_t - \mathbf{B}^t\mathbf{u}_0 - t\mathbf{B}^t(\mathbf{I}_d - \mathbf{B})\mathbf{v}_0)$, $\mathbf{M}_t(\mathbf{B}) = (\mathbf{W}_t^{(0)})^{-1}[2\mathbf{B}(\mathbf{I}_d - \mathbf{B})^{-1}(\mathbf{I}_d - \mathbf{B}^t) - 2t\mathbf{B}^t - t(t-1)\mathbf{B}^t(\mathbf{I}_d - \mathbf{B})]$, and $\mathbf{K}_t(\mathbf{B}) = \mathbf{L}_t(\mathbf{M}_t - \mathbf{L}_t)^{-1}$ ($t \ge 2$) yields $\mathbb{E}[\hat{\mathbf{v}}_t^{(0)} + \mathbf{K}_t(\mathbf{B})(\hat{\mathbf{v}}_t^{(0)} - \hat{\mathbf{u}}_t^{(0)})] \equiv \bm{\mu}_t$ for all $t \ge 2$.
+\end{theorem}
+
+\begin{theorem}[Blessing of Dimensionality: \texttt{AdaTC-EWMA}]
+Let $\bm{\delta}_t = \mathbf{K}_t(\mathbf{B})(\hat{\mathbf{v}}_t^{(0)} - \hat{\mathbf{u}}_t^{(0)})$ and $\hat{\sigma}_{t,i}^2$ be the bias-corrected EWMA of $\frac{1}{6}(x_{t,i} - 2x_{t-1,i} + x_{t-2,i})^2$. Under sub-Gaussian noise with interior optimum $\gamma_t^* \in (0, 1)$, the blind shrinkage gate $\hat{\gamma}_t = \operatorname{clip}_{[0,1]}(1 - \widehat{\operatorname{Tr}}(\mathbf{C}_{\delta,t} + \mathbf{C}_{v\delta,t}) / \|\bm{\delta}_t\|_2^2)$ satisfies $\frac{1}{d}\mathbb{E}[\|\hat{\mathbf{v}}_t^{(0)} + \hat{\gamma}_t\bm{\delta}_t - \bm{\mu}_t\|_2^2] - \frac{1}{d}\mathcal{R}_t(\gamma_t^*) = O(d^{-1})$.
+\end{theorem}
+
+\begin{theorem}[Sparse Exposure Mass \& Rare-Token Wakeup Shock]
+In dense-gradient \texttt{AdamW}, a dormant parameter row first activating at global step $t \gg (1-\beta_2)^{-1}$ receives an uncalibrated step multiplier $\kappa_\infty = (1-\beta_1)/\sqrt{1-\beta_2}$ ($3.16\times$ for $\beta_2=0.999$; $10.0\times$ for $\beta_2=0.9999$), whereas per-row exposure calibration preserves exact $1.0\times$ scaling.
+\end{theorem}
+
+\begin{theorem}[Three-Way Optimizer Asymmetry]
+Omitting bias correction scales step $t$ by $(1-\beta_1^t) < 1$ in Momentum SGD, $(1-\beta_2^t)^{-1/2} > 1$ in RMSprop, and $(1-\beta_1^t)/\sqrt{1-\beta_2^t}$ in Adam.
+\end{theorem}
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

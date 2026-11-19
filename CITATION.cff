@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this research, proofs, or optimizer code, please cite it as below."
+authors:
+  - family-names: "Rober"
+    given-names: "Andrew"
+title: "Generalized Higher-Dimensional EWMA Bias Correction: Non-Stationary Drift Elimination, Blessing of Dimensionality, and Adaptive Deep Learning Optimization"
+version: 1.0.0
+date-released: 2026-11-19
+url: "https://github.com/AndrewRober/HigherDimensionalEWMABiasCorrection"
+repository-code: "https://github.com/AndrewRober/HigherDimensionalEWMABiasCorrection"
+license: MIT
+keywords:
+  - exponential moving average
+  - bias correction
+  - higher-dimensional statistics
+  - James-Stein shrinkage
+  - AdamW optimizer
+  - non-stationary optimization
+  - mixture of experts
